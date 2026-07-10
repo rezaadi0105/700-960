@@ -1,4 +1,4 @@
-# PSFree WebKit Exploit & Lapse Kernel Exploit v2.2 for PS4
+# PSFree WebKit Exploit & Lapse Kernel Exploit v2.3 for PS4
 
 A PSFree & Lapse exploit for PS4 firmware 7.00 to 9.60
 > ⚠️ This repository is for research and educational purposes only.
