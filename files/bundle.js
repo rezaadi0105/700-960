@@ -5241,20 +5241,7 @@ async function doJBwithPSFreeLapseExploit() {
     window.log('Lapse STAGE 5/5: Patch kernel');
     await sleep(50); // Wait 50ms
     await patch_kernel(kbase, kmem, p_ucred, restore_info);
-    close(unblock_fd);
-    close(block_fd);
-    free_aios2(groom_ids.addr, groom_ids.length);
-    aio_multi_wait(block_id.addr, 1);
-    aio_multi_delete(block_id.addr, block_id.length);
-    for (const sd of sds) {
-      close(sd);
-    }
-    // Restore the thread's CPU core and realtime priority to maintain system stability during the exploit.
-    // Stability tweaks from Al-Azif's source
-    //log(`restoring core: ${current_core}`);
-    //log(`restoring rtprio: type=${current_rtprio.type} prio=${current_rtprio.prio}`);
-    pin_to_core(current_core);
-    set_rtprio(current_rtprio);
+    //doCleanup(); // Only works on success
     // Check if it all worked
     try {
       if (sysi('setuid', 0) == 0) {
@@ -5264,18 +5251,95 @@ async function doJBwithPSFreeLapseExploit() {
         return true;
       } else {
         window.log("An error occured during Lapse\nPlease restart console and try again...", "red");
+        CleanupFail();
         return false;
       }
     } catch {
       // Still not exploited, something failed, but it made it here...
       die("kernel exploit failed!");
+      CleanupFail();
       return false;
     }
   } catch (error) {
     window.log("An error occured during Lapse\nPlease restart console and try again...\nError definition: " + error, "red");
+    CleanupFail();
     return false;
+}
+//================================================================================================
+// Cleanup Function ==============================================================================
+//================================================================================================
+var block_fd, unblock_fd, current_core, current_rtprio, current_core_stored;
+var sds, block_id, groom_ids, pktopts_sds, dirty_sd, sd_pair_main;
+//================================================================================================
+function doCleanup() {
+  if (unblock_fd !== -1) {
+    try {
+      close(unblock_fd);
+    } catch (e) {}
+    unblock_fd = -1;
+  }
+  if (block_fd !== -1) {
+    try {
+      close(block_fd);
+    } catch (e) {}
+    block_fd = -1;
+  }
+  if (groom_ids !== null) {
+    try {
+      free_aios2(groom_ids.addr, groom_ids.length);
+    } catch (e) {}
+    groom_ids = null;
+  }
+  if (block_id !== 0xffffffff) {
+    try {
+      aio_multi_wait(block_id.addr, 1);
+    } catch(e) {}
+    try {
+      aio_multi_delete(block_id.addr, block_id.length);
+    } catch(e) {}
+    block_id = 0xffffffff;
+  }
+  if (sds !== null) {
+    for (const sd of sds) {
+      try {
+        close(sd);
+      } catch(e) {}
+    }
+    sds = null;
+  }
+  if (pktopts_sds !== null) {
+    for (const psd of pktopts_sds) {
+      try {
+        close(psd);
+      } catch(e) {}
+    }
   }
 }
+
+function CleanupFail() {
+    // Al-Azif's minimal cleanup on failure
+    if (unblock_fd !== -1) {
+      try {
+        close(unblock_fd);
+      } catch (e) {}
+      unblock_fd = -1;
+    }
+
+    // Always restore core and priority
+    if (current_core_stored !== -1) {
+      // Restore the thread's CPU core and realtime priority to maintain system stability during the exploit.
+      // Stability tweaks from Al-Azif's source
+      //log(`restoring core: ${current_core}`);
+      //log(`restoring rtprio: type=${current_rtprio.type} prio=${current_rtprio.prio}`);
+      try {
+        pin_to_core(current_core);
+        set_rtprio(current_rtprio);
+        //window.log("CPU core restored!");
+      } catch (e) {}
+    }
+  }
+}
+
 // Make function globally accessible
 window.doJBwithPSFreeLapseExploit = doJBwithPSFreeLapseExploit;
 //================================================================================================
