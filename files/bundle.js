@@ -5264,16 +5264,37 @@ async function doJBwithPSFreeLapseExploit() {
         return true;
       } else {
         window.log("An error occured during Lapse\nPlease restart console and try again...", "red");
+        CleanupFail();
         return false;
       }
     } catch {
       // Still not exploited, something failed, but it made it here...
       die("kernel exploit failed!");
+      CleanupFail();
       return false;
     }
   } catch (error) {
     window.log("An error occured during Lapse\nPlease restart console and try again...\nError definition: " + error, "red");
+    CleanupFail();
     return false;
+  }
+  // Cleanup if failed
+  var unblock_fd, current_core, current_rtprio, current_core_stored;
+  function CleanupFail() {
+    // Al-Azif's minimal cleanup on failure
+    try {
+      close(unblock_fd);
+    } catch (e) {}
+      unblock_fd = -1;
+    // Always restore core and priority
+    // Restore the thread's CPU core and realtime priority to maintain system stability during the exploit.
+    // Stability tweaks from Al-Azif's source
+    try {
+      pin_to_core(current_core);
+      set_rtprio(current_rtprio);
+      //window.log("CPU core restored!");
+      } catch (e) {
+    }
   }
 }
 // Make function globally accessible
