@@ -5275,6 +5275,17 @@ async function doJBwithPSFreeLapseExploit() {
     }
   } catch (error) {
     window.log("An error occured during Lapse\nPlease restart console and try again...\nError definition: " + error, "red");
+    // Al-Azif's minimal cleanup on failure
+    try {
+        close(unblock_fd);
+      } catch (e) {}
+        unblock_fd = -1;
+    // Always restore core and priority
+    try {
+        pin_to_core(current_core);
+        set_rtprio(current_rtprio);
+      } catch (e) {
+    }
     return false;
   }
 }
